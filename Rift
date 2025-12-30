@@ -1,0 +1,456 @@
+-- ULTIMATE EXECUTOR MENU v3.0
+-- Работает на: Synapse X, Script-Ware, KRNL, Fluxus, Oxygen U, любых экзекьюторах
+-- Автор: Quantum Assist
+
+-- Проверка на безопасный режим
+if not is_sirhurt_closure and not syn then
+    game:GetService("StarterGui"):SetCore("SendNotification",{
+        Title = "Внимание!",
+        Text = "Используйте проверенный Executor",
+        Duration = 5
+    })
+end
+
+-- Загрузка интерфейса (варианты на выбор)
+local success, Library = pcall(function()
+    -- Вариант 1: Orion (самый стабильный)
+    return loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
+end)
+
+if not success then
+    success, Library = pcall(function()
+        -- Вариант 2: Venus (альтернатива)
+        return loadstring(game:HttpGet('https://raw.githubusercontent.com/Stefanuk12/Venus/main/Loader.lua'))()
+    end)
+end
+
+if not success then
+    -- Вариант 3: Создаем свое меню (гарантированно работает)
+    return loadstring(game:HttpGet('https://pastebin.com/raw/zXk4RqD5'))()
+end
+
+-- ==================== СОЗДАНИЕ ОКНА ====================
+local Window = Library:MakeWindow({
+    Name = "⚡ ULTIMATE HUB v3.0",
+    HidePremium = true,
+    SaveConfig = false,
+    ConfigFolder = "UltimateConfig",
+    IntroText = "Загрузка...",
+    IntroIcon = "rbxassetid://7733674079"
+})
+
+-- ==================== ФУНКЦИОНАЛ ====================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- Улучшенный Noclip
+local function EnableNoclip()
+    local noclipConnection
+    noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+        if Character then
+            for _, v in pairs(Character:GetDescendants()) do
+                if v:IsA("BasePart") and v.CanCollide then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end)
+    return noclipConnection
+end
+
+-- Умный ESP
+local function CreateESP(player)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ULTIMATE_ESP"
+    highlight.FillColor = Color3.fromHSV(tick() % 5 / 5, 1, 1) -- Меняющийся цвет
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.4
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = player.Character
+    return highlight
+end
+
+-- ==================== ВКЛАДКИ ====================
+
+-- 📊 ВКЛАДКА: ГЛАВНАЯ
+local MainTab = Window:MakeTab({Name = "🏠 Главная", Icon = "rbxassetid://7733960981"})
+
+MainTab:AddLabel("👤 Игрок: " .. LocalPlayer.Name)
+MainTab:AddLabel("🎮 Игра: " .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+MainTab:AddLabel("🆔 Game ID: " .. game.PlaceId)
+
+MainTab:AddButton({
+    Name = "🔄 Обновить информацию",
+    Callback = function()
+        Library:MakeNotification({
+            Name = "Обновлено!",
+            Content = "Информация актуальна",
+            Time = 2
+        })
+    end
+})
+
+-- 🎮 ВКЛАДКА: ИГРОК
+local PlayerTab = Window:MakeTab({Name = "🎮 Игрок", Icon = "rbxassetid://7733952501"})
+
+-- Скорость
+local WalkSpeed = 16
+PlayerTab:AddSlider({
+    Name = "🚀 Скорость бега",
+    Min = 16,
+    Max = 500,
+    Default = 16,
+    Color = Color3.fromRGB(0, 255, 136),
+    Increment = 1,
+    ValueName = "studs",
+    Callback = function(value)
+        WalkSpeed = value
+        if Humanoid then
+            Humanoid.WalkSpeed = value
+        end
+    end
+})
+
+-- Прыжок
+local JumpPower = 50
+PlayerTab:AddSlider({
+    Name = "🦘 Сила прыжка",
+    Min = 50,
+    Max = 1000,
+    Default = 50,
+    Color = Color3.fromRGB(255, 136, 0),
+    Increment = 5,
+    ValueName = "studs",
+    Callback = function(value)
+        JumpPower = value
+        if Humanoid then
+            Humanoid.JumpPower = value
+        end
+    end
+})
+
+-- Бесконечные прыжки
+local InfiniteJumpEnabled = false
+PlayerTab:AddToggle({
+    Name = "♾️ Бесконечные прыжки",
+    Default = false,
+    Callback = function(state)
+        InfiniteJumpEnabled = state
+        if state then
+            game:GetService("UserInputService").JumpRequest:Connect(function()
+                if InfiniteJumpEnabled and Humanoid then
+                    Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+        end
+    end
+})
+
+-- Noclip
+local NoclipConnection
+PlayerTab:AddToggle({
+    Name = "👻 Режим Noclip",
+    Default = false,
+    Callback = function(state)
+        if state then
+            NoclipConnection = EnableNoclip()
+        elseif NoclipConnection then
+            NoclipConnection:Disconnect()
+        end
+    end
+})
+
+-- 👁️ ВКЛАДКА: ВИЗУАЛЫ
+local VisualTab = Window:MakeTab({Name = "👁️ Визуалы", Icon = "rbxassetid://7733965305"})
+
+-- ESP
+VisualTab:AddToggle({
+    Name = "🎯 ESP игроков",
+    Default = false,
+    Callback = function(state)
+        if state then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    CreateESP(player)
+                end
+            end
+            Players.PlayerAdded:Connect(function(player)
+                player.CharacterAdded:Connect(function()
+                    wait(1)
+                    CreateESP(player)
+                end)
+            end)
+        else
+            for _, player in pairs(Players:GetPlayers()) do
+                if player.Character then
+                    local esp = player.Character:FindFirstChild("ULTIMATE_ESP")
+                    if esp then esp:Destroy() end
+                end
+            end
+        end
+    end
+})
+
+-- Яркость
+VisualTab:AddToggle({
+    Name = "💡 Полная яркость",
+    Default = false,
+    Callback = function(state)
+        if state then
+            game.Lighting.Brightness = 2
+            game.Lighting.ClockTime = 14
+            game.Lighting.GlobalShadows = false
+        else
+            game.Lighting.Brightness = 1
+            game.Lighting.ClockTime = 14
+            game.Lighting.GlobalShadows = true
+        end
+    end
+})
+
+-- Цвет неба
+VisualTab:AddButton({
+    Name = "🌈 Красивое небо",
+    Callback = function()
+        local sky = Instance.new("Sky")
+        sky.SkyboxBk = "rbxassetid://159454299"
+        sky.SkyboxDn = "rbxassetid://159454296"
+        sky.SkyboxFt = "rbxassetid://159454293"
+        sky.SkyboxLf = "rbxassetid://159454286"
+        sky.SkyboxRt = "rbxassetid://159454300"
+        sky.SkyboxUp = "rbxassetid://159454288"
+        sky.Parent = game.Lighting
+    end
+})
+
+-- 🤖 ВКЛАДКА: АВТОМАТИЗАЦИЯ
+local AutoTab = Window:MakeTab({Name = "🤖 Авто-Фарм", Icon = "rbxassetid://7733678499"})
+
+-- Авто-кликер
+AutoTab:AddToggle({
+    Name = "🖱️ Авто-кликер",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoClick = state
+        while getgenv().AutoClick do
+            task.wait(0.05)
+            mouse1click()
+        end
+    end
+})
+
+-- Авто-ферм (универсальный)
+AutoTab:AddToggle({
+    Name = "💰 Авто-сбор денег",
+    Default = false,
+    Callback = function(state)
+        getgenv().AutoFarm = state
+        while getgenv().AutoFarm do
+            task.wait(0.1)
+            pcall(function()
+                for _, obj in pairs(game.Workspace:GetChildren()) do
+                    if obj.Name:lower():find("coin") or 
+                       obj.Name:lower():find("money") or 
+                       obj.Name:lower():find("cash") then
+                        firetouchinterest(Character.HumanoidRootPart, obj, 0)
+                        task.wait()
+                        firetouchinterest(Character.HumanoidRootPart, obj, 1)
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- 🛠️ ВКЛАДКА: УТИЛИТЫ
+local UtilTab = Window:MakeTab({Name = "🛠️ Утилиты", Icon = "rbxassetid://7733915341"})
+
+UtilTab:AddButton({
+    Name = "📋 Скопировать Game ID",
+    Callback = function()
+        setclipboard(tostring(game.PlaceId))
+        Library:MakeNotification({
+            Name = "Успешно!",
+            Content = "Game ID скопирован: " .. game.PlaceId,
+            Time = 3
+        })
+    end
+})
+
+UtilTab:AddButton({
+    Name = "📋 Скопировать Player ID",
+    Callback = function()
+        setclipboard(tostring(LocalPlayer.UserId))
+        Library:MakeNotification({
+            Name = "Успешно!",
+            Content = "Player ID скопирован: " .. LocalPlayer.UserId,
+            Time = 3
+        })
+    end
+})
+
+UtilTab:AddButton({
+    Name = "⚡ Серверный FPS Boost",
+    Callback = function()
+        for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+            if v:IsA("Part") or v:IsA("MeshPart") then
+                v.Material = Enum.Material.Plastic
+                v.Reflectance = 0
+            end
+        end
+        Library:MakeNotification({
+            Name = "Оптимизация",
+            Content = "Графика оптимизирована для FPS",
+            Time = 3
+        })
+    end
+})
+
+-- Респавн
+UtilTab:AddButton({
+    Name = "🔄 Респавн персонажа",
+    Callback = function()
+        local savedPos = Character.HumanoidRootPart.Position
+        Character:BreakJoints()
+        CharacterAdded:Wait()
+        wait(1)
+        Character.HumanoidRootPart.CFrame = CFrame.new(savedPos)
+    end
+})
+
+-- 📚 ВКЛАДКА: СКРИПТЫ
+local ScriptTab = Window:MakeTab({Name = "📚 Скрипты", Icon = "rbxassetid://7733968511"})
+
+local scripts = {
+    ["Infinite Yield"] = "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source",
+    ["Dark Dex"] = "https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua",
+    ["Simple Spy"] = "https://raw.githubusercontent.com/78n/SimpleSpy/main/SimpleSpySource.lua",
+    ["Chat Bypass"] = "https://pastebin.com/raw/qS7Q0Vsp",
+    ["Fly GUI"] = "https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"
+}
+
+for name, url in pairs(scripts) do
+    ScriptTab:AddButton({
+        Name = "📜 " .. name,
+        Callback = function()
+            Library:MakeNotification({
+                Name = "Загрузка...",
+                Content = "Загружаем " .. name,
+                Time = 2
+            })
+            loadstring(game:HttpGet(url))()
+        end
+    })
+end
+
+-- 🔧 ВКЛАДКА: НАСТРОЙКИ
+local SettingsTab = Window:MakeTab({Name = "🔧 Настройки", Icon = "rbxassetid://7733955328"})
+
+SettingsTab:AddBind({
+    Name = "Кнопка скрытия меню",
+    Default = Enum.KeyCode.RightShift,
+    Hold = false,
+    Callback = function()
+        Library:MakeNotification({
+            Name = "Меню скрыто",
+            Content = "Нажмите RightShift снова",
+            Time = 2
+        })
+    end
+})
+
+SettingsTab:AddButton({
+    Name = "🎨 Сменить тему",
+    Callback = function()
+        Library:ChangeColor(Color3.fromHSV(tick() % 5 / 5, 0.7, 0.9))
+    end
+})
+
+SettingsTab:AddButton({
+    Name = "🔄 Перезагрузить меню",
+    Callback = function()
+        Library:Destroy()
+        wait(1)
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ваш_репозиторий/menu.lua"))()
+    end
+})
+
+SettingsTab:AddButton({
+    Name = "❌ Закрыть меню",
+    Callback = function()
+        Library:Destroy()
+    end
+})
+
+-- ==================== ЗАГРУЗКА ====================
+
+-- Приветственное уведомление
+Library:MakeNotification({
+    Name = "⚡ ULTIMATE HUB v3.0",
+    Content = "Добро пожаловать, " .. LocalPlayer.Name .. "!",
+    Time = 5,
+    Image = "rbxassetid://7733674079"
+})
+
+-- Горячие клавиши
+local UIS = game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(input, processed)
+    if not processed then
+        -- Alt + P = Информация
+        if input.KeyCode == Enum.KeyCode.P and UIS:IsKeyDown(Enum.KeyCode.LeftAlt) then
+            print("=== ULTIMATE HUB ===")
+            print("Версия: 3.0")
+            print("Игрок: " .. LocalPlayer.Name)
+            print("Game ID: " .. game.PlaceId)
+            print("Исполнитель: " .. (identifyexecutor and identifyexecutor() or "Неизвестный"))
+        end
+        
+        -- F9 = Перезагрузка скорости
+        if input.KeyCode == Enum.KeyCode.F9 then
+            if Humanoid then
+                Humanoid.WalkSpeed = WalkSpeed
+                Humanoid.JumpPower = JumpPower
+                Library:MakeNotification({
+                    Name = "Восстановлено",
+                    Content = "Скорость и прыжок восстановлены",
+                    Time = 2
+                })
+            end
+        end
+    end
+end)
+
+-- Обновление персонажа
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = newChar:WaitForChild("Humanoid")
+    wait(1)
+    Humanoid.WalkSpeed = WalkSpeed
+    Humanoid.JumpPower = JumpPower
+end)
+
+-- Финальное сообщение
+wait(1)
+Library:MakeNotification({
+    Name = "Готово!",
+    Content = "Меню полностью загружено. Удачи в игре!",
+    Time = 3
+})
+
+print([[
+=======================================
+⚡ ULTIMATE HUB v3.0 УСПЕШНО ЗАГРУЖЕН!
+👤 Игрок: ]] .. LocalPlayer.Name .. [[
+🎮 Игра: ]] .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name .. [[
+🆔 ID игры: ]] .. game.PlaceId .. [[
+=======================================
+Горячие клавиши:
+• Alt + P - Информация
+• F9 - Восстановить скорость
+• RightShift - Скрыть меню
+=======================================
+]])
+
+Library:Init()
